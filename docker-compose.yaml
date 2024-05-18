@@ -6,7 +6,6 @@ services:
       - .:/api_server
     ports:
       - 8000:1234
-    env_file: .env.development
     tty: true
     stdin_open: true
     depends_on:
@@ -18,7 +17,7 @@ services:
       - "3306:3306"
     environment:
       MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: nestjs_graphql_schema_first
+      MYSQL_DATABASE: nestjs_prisma_sample
       TZ: "Asia/Tokyo"
     volumes:
       - ./db/my.cnf:/etc/mysql/conf.d/my.cnf
