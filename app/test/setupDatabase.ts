@@ -9,6 +9,12 @@ export async function setupDatabase() {
   // 作成するDB名
   const newDbName = `worker_${process.env.JEST_WORKER_ID}`;
 
+  // CI環境の時はDATABASE_URLをlocalhostに変更
+  if (process.env?.IS_CI) {
+    process.env.DATABASE_URL =
+      'mysql://root:root@127.0.0.1:3306/nestjs_prisma_sample_test';
+  }
+
   // DBの作成
   const prisma = new PrismaClient();
   await prisma.$connect();
