@@ -1,5 +1,5 @@
 import { setupDatabase } from './setupDatabase';
 
-module.exports = async () => {
+beforeAll(async () => {
   await setupDatabase();
-};
+});

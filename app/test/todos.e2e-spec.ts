@@ -3,7 +3,8 @@ import { INestApplication } from '@nestjs/common';
 import * as request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma.service';
-import { SubTodo } from '@prisma/client';
+import { SubTodo, Todo } from '@prisma/client';
+import { resetTestDatabase } from './resetTestDatabase';
 
 describe('TodosController (e2e)', () => {
   let app: INestApplication;
@@ -11,7 +12,6 @@ describe('TodosController (e2e)', () => {
   let prisma: PrismaService;
 
   beforeEach(async () => {
-    console.log(process.env.DATABASE_URL);
     moduleFixture = await Test.createTestingModule({
       imports: [AppModule],
       providers: [PrismaService],
@@ -24,6 +24,7 @@ describe('TodosController (e2e)', () => {
 
   // テストで起動したNestアプリを終了しないとJestで警告が発生するため、以下のコードで終了
   afterEach(async () => {
+    await resetTestDatabase();
     await app.close();
     await moduleFixture.close();
   });
@@ -76,180 +77,131 @@ describe('TodosController (e2e)', () => {
     });
   });
 
-  // describe('Query findOne()', () => {
-  //   beforeEach(async () => {
-  //     await todoRepository.save([
-  //       {
-  //         title: 'test title1',
-  //         content: 'test content1',
-  //         subTodos: [
-  //           {
-  //             title: 'test sub title1',
-  //             content: 'test sub content1',
-  //           },
-  //           {
-  //             title: 'test sub title2',
-  //             content: 'test sub content2',
-  //           },
-  //         ],
-  //       },
-  //       { title: 'test title2', content: 'test content2' },
-  //     ]);
-  //   });
+  describe('Query findOne()', () => {
+    let todoHavingSubTodo: Todo;
+    let todoNotHavingSubTodo: Todo;
 
-  //   it('指定したfieldが取得できること(アソシエーション先含む)', async () => {
-  //     const { body } = await request(app.getHttpServer())
-  //       .post('/graphql')
-  //       .send({
-  //         query: `
-  //           query todo {
-  //             todo(id: 1) {
-  //               id,
-  //               title,
-  //               content,
-  //               subTodos {
-  //                 title,
-  //                 content
-  //               }
-  //             }
-  //           }
-  //         `,
-  //       })
-  //       .expect(200);
-  //     expect(body.data.todo.title).toEqual('test title1');
-  //     expect(body.data.todo.content).toEqual('test content1');
-  //     // NOTE: アソシエーション先の取得ができていることの確認
-  //     expect(body.data.todo.subTodos.length).toEqual(2);
-  //     expect(
-  //       !!body.data.todo.subTodos.find(
-  //         (subTodo: SubTodo) => subTodo.title === 'test sub title1',
-  //       ),
-  //     ).toEqual(true);
-  //   });
+    beforeEach(async () => {
+      todoHavingSubTodo = await prisma.todo.create({
+        data: {
+          title: 'test title1',
+          content: 'test content1',
+          subTodos: {
+            create: [
+              {
+                title: 'test sub title1',
+                content: 'test sub content1',
+              },
+              {
+                title: 'test sub title2',
+                content: 'test sub content2',
+              },
+            ],
+          },
+        },
+      });
+      todoNotHavingSubTodo = await prisma.todo.create({
+        data: { title: 'test title2', content: 'test content2' },
+      });
+    });
 
-  //   it('指定したfieldが取得できること(アソシエーション先なし)', async () => {
-  //     const { body } = await request(app.getHttpServer())
-  //       .post('/graphql')
-  //       .send({
-  //         query: `
-  //           query todo {
-  //             todo(id: 2) {
-  //               id,
-  //               title,
-  //               content,
-  //               subTodos {
-  //                 title,
-  //                 content
-  //               }
-  //             }
-  //           }
-  //         `,
-  //       })
-  //       .expect(200);
-  //     expect(body.data.todo.title).toEqual('test title2');
-  //     expect(body.data.todo.content).toEqual('test content2');
-  //     // NOTE: アソシエーション先は0件であることの確認
-  //     expect(body.data.todo.subTodos.length).toEqual(0);
-  //   });
-  // });
+    it('指定したTODOが取得できること(アソシエーション先含む)', async () => {
+      const { body } = await request(app.getHttpServer())
+        .get(`/todos/${todoHavingSubTodo.id}`)
+        .expect(200);
+      expect(body.title).toEqual('test title1');
+      expect(body.content).toEqual('test content1');
+      // NOTE: アソシエーション先の取得ができていることの確認
+      expect(body.subTodos.length).toEqual(2);
+      expect(
+        !!body.subTodos.find(
+          (subTodo: SubTodo) => subTodo.title === 'test sub title1',
+        ),
+      ).toEqual(true);
+    });
 
-  // describe('Mutation createTodo()', () => {
-  //   it('todoが作成できること', async () => {
-  //     const { body } = await request(app.getHttpServer())
-  //       .post('/graphql')
-  //       .send({
-  //         query: `
-  //           mutation createTodo {
-  //             createTodo(createTodoInput: {
-  //               title:"test title1",
-  //               content: "test content1"
-  //             }) {
-  //               id,
-  //               title,
-  //               content
-  //             }
-  //           }
-  //         `,
-  //       })
-  //       .expect(200);
-  //     expect(body.data.createTodo.title).toEqual('test title1');
-  //     expect(body.data.createTodo.content).toEqual('test content1');
+    it('指定したfieldが取得できること(アソシエーション先なし)', async () => {
+      const { body } = await request(app.getHttpServer())
+        .get(`/todos/${todoNotHavingSubTodo.id}`)
+        .expect(200);
+      expect(body.title).toEqual('test title2');
+      expect(body.content).toEqual('test content2');
+      // NOTE: アソシエーション先は0件であることの確認
+      expect(body.subTodos.length).toEqual(0);
+    });
+  });
 
-  //     const createdTodo = await todoRepository.findOneBy({
-  //       title: 'test title1',
-  //     });
-  //     expect(!!createdTodo).toBeTruthy();
-  //   });
-  // });
+  describe('Mutation createTodo()', () => {
+    it('todoが作成できること', async () => {
+      const { body } = await request(app.getHttpServer())
+        .post('/todos')
+        .send({
+          title: 'test title1',
+          content: 'test content1',
+        })
+        .expect(201);
+      expect(body.title).toEqual('test title1');
+      expect(body.content).toEqual('test content1');
 
-  // describe('Mutation updateTodo()', () => {
-  //   beforeEach(async () => {
-  //     await todoRepository.save([
-  //       {
-  //         title: 'test title1',
-  //         content: 'test content1',
-  //       },
-  //     ]);
-  //   });
+      const createdTodo = await prisma.todo.findFirst({
+        where: { title: 'test title1' },
+      });
+      expect(!!createdTodo).toBeTruthy();
+    });
+  });
 
-  //   it('todoが更新できること', async () => {
-  //     const { body } = await request(app.getHttpServer())
-  //       .post('/graphql')
-  //       .send({
-  //         query: `
-  //           mutation updateTodo {
-  //             updateTodo(updateTodoInput: {
-  //               id: 1,
-  //               title:"test title2",
-  //               content: "test content2"
-  //             }) {
-  //               id,
-  //               title,
-  //               content
-  //             }
-  //           }
-  //         `,
-  //       })
-  //       .expect(200);
-  //     expect(body.data.updateTodo.title).toEqual('test title2');
-  //     expect(body.data.updateTodo.content).toEqual('test content2');
+  describe('Mutation updateTodo()', () => {
+    let todo: Todo;
 
-  //     const createdTodo = await todoRepository.findOneBy({
-  //       title: 'test title2',
-  //     });
-  //     expect(!!createdTodo).toBeTruthy();
-  //   });
-  // });
+    beforeEach(async () => {
+      todo = await prisma.todo.create({
+        data: {
+          title: 'test title1',
+          content: 'test content1',
+        },
+      });
+    });
 
-  // describe('Mutation removeTodo()', () => {
-  //   beforeEach(async () => {
-  //     await todoRepository.save([
-  //       {
-  //         title: 'test title1',
-  //         content: 'test content1',
-  //       },
-  //     ]);
-  //   });
+    it('todoが更新できること', async () => {
+      const { body } = await request(app.getHttpServer())
+        .patch(`/todos/${todo.id}`)
+        .send({
+          title: 'test updated title1',
+          content: 'test updated content1',
+        })
+        .expect(200);
+      expect(body.title).toEqual('test updated title1');
+      expect(body.content).toEqual('test updated content1');
 
-  //   it('todoが削除できること', async () => {
-  //     const { body } = await request(app.getHttpServer())
-  //       .post('/graphql')
-  //       .send({
-  //         query: `
-  //           mutation removeTodo {
-  //             removeTodo(id: 1) {
-  //               result
-  //             }
-  //           }
-  //         `,
-  //       })
-  //       .expect(200);
-  //     expect(body.data.removeTodo.result).toEqual(true);
+      const updatedTodo = await prisma.todo.findFirst({
+        where: { title: 'test updated title1' },
+      });
+      expect(!!updatedTodo).toBeTruthy();
+    });
+  });
 
-  //     const removedTodo = await todoRepository.findOneBy({
-  //       title: 'test title1',
-  //     });
-  //     expect(!!removedTodo).toBeFalsy();
-  //   });
-  // });
+  describe('Mutation removeTodo()', () => {
+    let todo: Todo;
+
+    beforeEach(async () => {
+      todo = await prisma.todo.create({
+        data: {
+          title: 'test title1',
+          content: 'test content1',
+        },
+      });
+    });
+
+    it('todoが削除できること', async () => {
+      const { body } = await request(app.getHttpServer())
+        .delete(`/todos/${todo.id}`)
+        .expect(200);
+      expect(body.result).toEqual(true);
+
+      const removedTodo = await prisma.todo.findFirst({
+        where: { title: 'test title1' },
+      });
+      expect(!!removedTodo).toBeFalsy();
+    });
+  });
 });
