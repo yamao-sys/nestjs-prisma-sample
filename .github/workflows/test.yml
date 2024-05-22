@@ -31,5 +31,7 @@ jobs:
 
       - name: Run Unit tests
         working-directory: ./app
+        env:
+          IS_CI: true
         run: |
           npm run test:e2e
