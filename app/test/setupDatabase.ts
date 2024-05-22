@@ -25,13 +25,14 @@ export async function setupDatabase() {
   await prisma.$disconnect();
 
   // 環境変数上書き
+  // CI環境の時はDB_HOSTをlocalhostに変更
+  if (process.env?.IS_CI) {
+    process.env.DATABASE_URL =
+      'mysql://root:root@127.0.0.1:3306/nestjs_prisma_sample_test';
+  }
   const dbUrl = new URL(process.env.DATABASE_URL ?? '');
   const baseUrl = dbUrl.href.substring(0, dbUrl.href.lastIndexOf('/'));
   process.env.DATABASE_URL = `${baseUrl}/${newDbName}`;
-  // CI環境の時はDB_HOSTをlocalhostに変更
-  if (process.env?.IS_CI) {
-    process.env.DB_HOST = '127.0.0.1';
-  }
 
   // DB初期化処理
   execSync('npx prisma migrate reset --force --skip-seed', {
