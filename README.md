@@ -31,6 +31,8 @@ docker-compose build
 docker-compose up
 ```
 
+**※ 以下、`docker-compose exec web sh`でwebコンテナに入った上で実行するコマンド類**
+
 NestJSでresource(controller, service, module, entity)を一式作成する
 ```
 nest g resource [name]
