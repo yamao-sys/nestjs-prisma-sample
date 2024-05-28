@@ -9,6 +9,7 @@ NestJS × Prismaのサンプルアプリケーション
   - スキーマファイルからテーブルごとのスキーマを確認しやすい
 - 課題点
   - DBを用いたテストの設定やFactoryBotのような設定が煩わしい...
+    - https://engineering.meetsmore.com/entry/2021/01/21/134930
     - 並列実行できるようDBの並列化、テストごとのDBのクリーンアップ処理(、FactoryBot化)を行う
 
 ## Jest実行時のDBの並列化
