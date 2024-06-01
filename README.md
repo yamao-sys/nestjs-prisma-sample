@@ -56,7 +56,7 @@ npx prisma migrate dev
 
 マイグレーション実行
 ```
-prisma migrate dev --preview-feature
+npx prisma migrate dev --preview-feature
 ```
 
 ## 参考
