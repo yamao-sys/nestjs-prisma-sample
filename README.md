@@ -11,7 +11,9 @@ NestJS × Prismaのサンプルアプリケーション
   - DBを用いたテストの設定やFactoryBotのような設定が煩わしい...
     - https://engineering.meetsmore.com/entry/2021/01/21/134930
     - 並列実行できるようDBの並列化、テストごとのDBのクリーンアップ処理(、FactoryBot化)を行う
-
+  - row SQLを書くときの型指定
+    - 今後TypedSQLが解決にあたって有力かも
+    - https://zenn.dev/tockn/articles/0e6eac6220e072
 ## Jest実行時のDBの並列化
 以下記事を参考に、setupFilesAfterEnvでJestのWORKERごとにDBの並列作成とDB接続を行う
 
